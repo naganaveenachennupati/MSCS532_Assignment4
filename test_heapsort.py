@@ -1,6 +1,7 @@
 import random
 import unittest
 
+from comparison_sorts import merge_sort, randomized_quicksort
 from heapsort import build_max_heap, heapsort
 
 
@@ -94,6 +95,71 @@ class TestHeapSort(unittest.TestCase):
                     values[right_child],
                 )
 
+class TestComparisonSorts(unittest.TestCase):
+    """Tests for the comparison sorting algorithms."""
+
+    def setUp(self):
+        self.test_cases = [
+            [],
+            [42],
+            [9, 2],
+            [1, 2, 3, 4, 5],
+            [5, 4, 3, 2, 1],
+            [4, 2, 4, 1, 2, 4],
+            [7, 7, 7, 7],
+            [-5, -1, -8, 0, 4, -2],
+            [19, -4, 0, 19, 7, -12, 3],
+        ]
+
+    def test_randomized_quicksort_cases(self):
+        for case_number, original in enumerate(self.test_cases):
+            with self.subTest(case=original):
+                values = original.copy()
+                expected = sorted(original)
+
+                randomized_quicksort(
+                    values,
+                    random.Random(532 + case_number),
+                )
+
+                self.assertEqual(values, expected)
+
+    def test_merge_sort_cases(self):
+        for original in self.test_cases:
+            with self.subTest(case=original):
+                values = original.copy()
+                expected = sorted(original)
+
+                merge_sort(values)
+
+                self.assertEqual(values, expected)
+
+    def test_large_randomized_quicksort(self):
+        rng = random.Random(1532)
+        values = [
+            rng.randint(-100_000, 100_000)
+            for _ in range(2_000)
+        ]
+        expected = sorted(values)
+
+        randomized_quicksort(
+            values,
+            random.Random(2532),
+        )
+
+        self.assertEqual(values, expected)
+
+    def test_large_merge_sort(self):
+        rng = random.Random(3532)
+        values = [
+            rng.randint(-100_000, 100_000)
+            for _ in range(2_000)
+        ]
+        expected = sorted(values)
+
+        merge_sort(values)
+
+        self.assertEqual(values, expected)
 
 if __name__ == "__main__":
     unittest.main()
