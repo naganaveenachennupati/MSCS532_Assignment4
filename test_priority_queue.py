@@ -1,114 +1,205 @@
-"""
-Unit tests for the max-priority queue implementation.
-"""
-
 import unittest
 
-from priority_queue import MaxPriorityQueue
+from priority_queue import MaxPriorityQueue, Task
 
 
 class TestMaxPriorityQueue(unittest.TestCase):
-    """Tests for MaxPriorityQueue."""
+    """Tests for the task-based max-priority queue."""
+
+    def create_task(
+        self,
+        task_id: str,
+        priority: int,
+        arrival_time: int = 0,
+        execution_time: int = 1,
+        deadline: int = 10,
+    ) -> Task:
+        return Task(
+            task_id,
+            priority,
+            arrival_time,
+            execution_time,
+            deadline,
+        )
 
     def test_empty_queue(self):
-        pq = MaxPriorityQueue()
-        self.assertTrue(pq.is_empty())
-        self.assertEqual(len(pq), 0)
+        queue = MaxPriorityQueue()
 
-    def test_insert_and_maximum(self):
-        pq = MaxPriorityQueue()
-        pq.insert(10)
-        pq.insert(4)
-        pq.insert(25)
-        pq.insert(7)
+        self.assertTrue(queue.is_empty())
+        self.assertEqual(len(queue), 0)
 
-        self.assertEqual(pq.maximum(), 25)
-        self.assertFalse(pq.is_empty())
-        self.assertEqual(len(pq), 4)
+    def test_insert_and_peek_max(self):
+        queue = MaxPriorityQueue()
 
-    def test_extract_max(self):
-        pq = MaxPriorityQueue()
+        queue.insert(self.create_task("T1", 3))
+        queue.insert(self.create_task("T2", 8))
+        queue.insert(self.create_task("T3", 5))
 
-        for value in [12, 3, 19, 7, 25]:
-            pq.insert(value)
+        self.assertEqual(queue.peek_max().task_id, "T2")
+        self.assertEqual(len(queue), 3)
+
+    def test_extract_max_order(self):
+        queue = MaxPriorityQueue()
+
+        queue.insert(self.create_task("T1", 3))
+        queue.insert(self.create_task("T2", 8))
+        queue.insert(self.create_task("T3", 5))
+        queue.insert(self.create_task("T4", 1))
 
         extracted = [
-            pq.extract_max(),
-            pq.extract_max(),
-            pq.extract_max(),
-            pq.extract_max(),
-            pq.extract_max(),
+            queue.extract_max().task_id
+            for _ in range(4)
         ]
 
-        self.assertEqual(extracted, [25, 19, 12, 7, 3])
-        self.assertTrue(pq.is_empty())
+        self.assertEqual(
+            extracted,
+            ["T2", "T3", "T1", "T4"],
+        )
 
     def test_increase_key(self):
-        pq = MaxPriorityQueue()
+        queue = MaxPriorityQueue()
 
-        for value in [10, 8, 6, 2]:
-            pq.insert(value)
+        queue.insert(self.create_task("T1", 4))
+        queue.insert(self.create_task("T2", 6))
+        queue.insert(self.create_task("T3", 2))
 
-        pq.increase_key(3, 15)
+        queue.increase_key("T3", 10)
 
-        self.assertEqual(pq.maximum(), 15)
+        self.assertEqual(queue.peek_max().task_id, "T3")
+        self.assertEqual(queue.peek_max().priority, 10)
 
-    def test_extract_from_empty_queue(self):
-        pq = MaxPriorityQueue()
+    def test_decrease_key(self):
+        queue = MaxPriorityQueue()
 
-        with self.assertRaises(IndexError):
-            pq.extract_max()
+        queue.insert(self.create_task("T1", 10))
+        queue.insert(self.create_task("T2", 7))
+        queue.insert(self.create_task("T3", 5))
 
-    def test_maximum_from_empty_queue(self):
-        pq = MaxPriorityQueue()
+        queue.decrease_key("T1", 1)
 
-        with self.assertRaises(IndexError):
-            pq.maximum()
+        self.assertEqual(queue.peek_max().task_id, "T2")
 
-    def test_invalid_insert_type(self):
-        pq = MaxPriorityQueue()
+    def test_equal_priority_uses_arrival_time(self):
+        queue = MaxPriorityQueue()
 
-        with self.assertRaises(TypeError):
-            pq.insert("abc")
+        queue.insert(
+            self.create_task(
+                "Later",
+                5,
+                arrival_time=4,
+                deadline=15,
+            )
+        )
+        queue.insert(
+            self.create_task(
+                "Earlier",
+                5,
+                arrival_time=1,
+                deadline=15,
+            )
+        )
 
-    def test_invalid_increase_key_type(self):
-        pq = MaxPriorityQueue()
-        pq.insert(10)
+        self.assertEqual(
+            queue.extract_max().task_id,
+            "Earlier",
+        )
 
-        with self.assertRaises(TypeError):
-            pq.increase_key(0, "abc")
+    def test_duplicate_task_id(self):
+        queue = MaxPriorityQueue()
 
-    def test_invalid_index_in_increase_key(self):
-        pq = MaxPriorityQueue()
-        pq.insert(10)
-
-        with self.assertRaises(IndexError):
-            pq.increase_key(5, 20)
-
-    def test_decreasing_key_not_allowed(self):
-        pq = MaxPriorityQueue()
-        pq.insert(20)
+        queue.insert(self.create_task("T1", 5))
 
         with self.assertRaises(ValueError):
-            pq.increase_key(0, 10)
+            queue.insert(self.create_task("T1", 9))
 
-    def test_duplicate_values(self):
-        pq = MaxPriorityQueue()
+    def test_extract_from_empty_queue(self):
+        queue = MaxPriorityQueue()
 
-        for value in [9, 9, 9, 9]:
-            pq.insert(value)
+        with self.assertRaises(IndexError):
+            queue.extract_max()
 
-        extracted = [pq.extract_max() for _ in range(4)]
-        self.assertEqual(extracted, [9, 9, 9, 9])
+    def test_peek_from_empty_queue(self):
+        queue = MaxPriorityQueue()
 
-    def test_negative_values(self):
-        pq = MaxPriorityQueue()
+        with self.assertRaises(IndexError):
+            queue.peek_max()
 
-        for value in [-10, -3, -25, -1]:
-            pq.insert(value)
+    def test_unknown_task_increase(self):
+        queue = MaxPriorityQueue()
 
-        extracted = [pq.extract_max() for _ in range(4)]
-        self.assertEqual(extracted, [-1, -3, -10, -25])
+        with self.assertRaises(KeyError):
+            queue.increase_key("Missing", 10)
+
+    def test_unknown_task_decrease(self):
+        queue = MaxPriorityQueue()
+
+        with self.assertRaises(KeyError):
+            queue.decrease_key("Missing", 1)
+
+    def test_invalid_increase_direction(self):
+        queue = MaxPriorityQueue()
+        queue.insert(self.create_task("T1", 8))
+
+        with self.assertRaises(ValueError):
+            queue.increase_key("T1", 4)
+
+    def test_invalid_decrease_direction(self):
+        queue = MaxPriorityQueue()
+        queue.insert(self.create_task("T1", 4))
+
+        with self.assertRaises(ValueError):
+            queue.decrease_key("T1", 8)
+
+    def test_negative_priorities(self):
+        queue = MaxPriorityQueue()
+
+        queue.insert(self.create_task("T1", -10))
+        queue.insert(self.create_task("T2", -2))
+        queue.insert(self.create_task("T3", -7))
+
+        self.assertEqual(
+            queue.extract_max().task_id,
+            "T2",
+        )
+
+    def test_invalid_task_values(self):
+        with self.assertRaises(ValueError):
+            Task("", 5, 0, 2, 10)
+
+        with self.assertRaises(ValueError):
+            Task("T1", 5, -1, 2, 10)
+
+        with self.assertRaises(ValueError):
+            Task("T1", 5, 0, 0, 10)
+
+        with self.assertRaises(ValueError):
+            Task("T1", 5, 5, 2, 4)
+
+    def test_large_queue(self):
+        queue = MaxPriorityQueue()
+
+        for number in range(500):
+            queue.insert(
+                Task(
+                    task_id=f"T{number}",
+                    priority=number,
+                    arrival_time=0,
+                    execution_time=1,
+                    deadline=1000,
+                )
+            )
+
+        extracted_priorities = []
+
+        while not queue.is_empty():
+            extracted_priorities.append(
+                queue.extract_max().priority
+            )
+
+        self.assertEqual(
+            extracted_priorities,
+            list(range(499, -1, -1)),
+        )
 
 
 if __name__ == "__main__":
